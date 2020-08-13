@@ -44,6 +44,10 @@ flags.DEFINE_string(
     "Output TF example file (or comma-separated list of files).")
 
 flags.DEFINE_string(
+    "vocab_file", "vocab.json",
+    "Output JSON file for vocabulary.")
+
+flags.DEFINE_string(
     "sequence_column_name", None,
     "The name of field whose sequence of tokens")
 
@@ -232,6 +236,10 @@ def create_training_instances(input_files, max_seq_length,
         all_documents.append([])
 
   vocab = list(vocab)
+
+  with tf.gfile.GFile(FLAGS.vocab_file, "w") as writer:
+      for i in range(len(vocab)):
+          writer.write(json.dumps({ "id": i+5, "token": vocab[i]}) + "\n")
 
   # all_documents の全 sentence を先に id 列に変換する.
   # id は 0-4 が <pad>, <unk>, [CLS], [SEP], [MASK] に割りあてられてるので 5 から使う
