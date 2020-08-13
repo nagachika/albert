@@ -183,9 +183,6 @@ def write_instance_to_example_files(instances, max_seq_length,
 
     if inst_index < 20:
       tf.logging.info("*** Example ***")
-      tf.logging.info("tokens: %s" % " ".join(
-          ["{}".format(x) for x in instance.tokens]))
-
       for feature_name in features.keys():
         feature = features[feature_name]
         values = []
