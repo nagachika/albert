@@ -113,6 +113,12 @@ def build_model(sess):
   segment_ids = tf.placeholder(tf.int32, [None, None], "segment_ids")
   mlm_positions = tf.placeholder(tf.int32, [None, None], "mlm_positions")
 
+  placeholders = {
+          "input_ids": input_ids,
+          "input_mask": input_mask,
+          "segment_ids": segment_ids,
+  }
+
   albert_config_path = os.path.join(
       FLAGS.albert_directory, "albert_config.json")
   albert_config = modeling.AlbertConfig.from_json_file(albert_config_path)
@@ -124,9 +130,10 @@ def build_model(sess):
       token_type_ids=segment_ids,
       use_one_hot_embeddings=False)
 
-  get_mlm_logits(model.get_sequence_output(), albert_config,
-                 mlm_positions, model.get_embedding_table())
-  get_sentence_order_logits(model.get_pooled_output(), albert_config)
+  outputs = {
+          "pooled_output": model.get_pooled_output(),
+          "sequence_output": model.get_sequence_output(),
+          }
 
   checkpoint_path = os.path.join(FLAGS.albert_directory, FLAGS.checkpoint_name)
   tvars = tf.trainable_variables()
@@ -143,20 +150,14 @@ def build_model(sess):
   tf.train.init_from_checkpoint(checkpoint_path, assignment_map)
   init = tf.global_variables_initializer()
   sess.run(init)
-  return sess
+  return sess, placeholders, outputs
 
 
 def main(_):
   sess = tf.Session()
   tf.train.get_or_create_global_step()
-  sess = build_model(sess)
-  my_vars = []
-  for var in tf.global_variables():
-    if "lamb_v" not in var.name and "lamb_m" not in var.name:
-      my_vars.append(var)
-  saver = tf.train.Saver(my_vars)
-  saver.save(sess, FLAGS.export_path)
-
+  sess, inputs, outputs = build_model(sess)
+  tf.saved_model.simple_save(sess, FLAGS.export_path, inputs=inputs, outputs=outputs)
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("albert_directory")
